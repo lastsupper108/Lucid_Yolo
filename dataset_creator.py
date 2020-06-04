@@ -38,33 +38,48 @@ def pre_process(annotation,Anchors):
     )
     
     #GRID x GRID x NUM_ANCHORS x (5+NUM_CATEG)
-    YOLO_BOXES = tf.zeros(GRID_DIM,GRID_DIM,2,25)
+    
         
+    #lets find grids corresponding to all boxes
+    
+    #scale box coordinates since image is scaled above as per preprocessing
+    x_scale = tf.math.divide(IMAGE_W,img_width)
+    y_scale =  tf.math.divide(IMAGE_H,img_height)
+    xmin = tf.cast(tf.math.round(tf.math.multiply( boxes[0,:] , x_scale)),dtype = tf.int32)
+    ymin = tf.cast(tf.math.round(tf.math.multiply( boxes[2,:] , y_scale)),dtype =tf.int32)
+    xmax = tf.cast(tf.math.round(tf.math.multiply( boxes[1,:] , x_scale)),tf.int32)
+    ymax = tf.cast(tf.math.round(tf.math.multiply( boxes[3,:] , x_scale)),tf.int32)
+    #find important box info
+    width = xmax- xmin
+    height = ymax- ymin
+    centre_x = xmin + tf.math.divide(width,2)
+    centre_y = xmax + tf.math.divide(height,2)
+    
+    Factor_x = tf.math.divide(IMAGE_W,GRID_DIM)
+    Factor_y = tf.math.divide(IMAGE_H,GRID_DIM)
+    Num_x = tf.cast(tf.math.divide(centre_x,Factor_x),tf.int32 )
+    Num_y = tf.cast(tf.math.divide(centre_y,Factor_y),tf.int32 )
+    INDEX = Num_y*GRID_DIM+Num_x
+    unique = tf.unique(INDEX)
     
     for i in tf.range(no_of_objects):
-            #scale the bounding box as per input_scaling
-    x_scale = tf.math.divide(IMAGE_W,img_width)
-    y_scale =  tf.math.divide(IMAGE_H,img_width)
-
-    xmin = int(np.round(box.x_min * x_scale))
-    ymin = int(np.round(box.y_min * y_scale))
-    xmax = int(np.round(box.x_max * x_scale))
-    ymax = int(np.round(box.y_max * y_scale))
-    b = Box([xmin,ymin,xmax,ymax])
-    
-
-
-    width = boxes[1,i]- boxes[0,i]
-        height = boxes[3,i]- boxes[2,i]
-        centre_x = boxes[0,i]+tf.math.divide(width,2)
-        centre_y = boxes[2,i]+tf.math.divide(height,2)
+            #scale the bounding box as per input_scaling        
+            if(INDEX[i] in unique):
+                #all anchors point to same box
+        sigma_tx = (centre_x  %Factor_x)/Factor_x
+        sigma_ty = (centre_y  % Factor_y)/Factor_y
         
-        Factor_x = IMAGE_W/GRID_DIM
-        Factor_y = IMAGE_H/GRID_DIM
-        self.Num_x = int(self.centre_x/Factor_x) 
-        self.Num_y = int(self.centre_y/Factor_y )        
-
         
+        #tensorflow images are loaded as (ht,width,ch)
+        if (width<height):#use anchor 1
+            tw = tf.math.log( (width /IMAGE_W) /Anchors[1,0])
+            th = tf.math.log( (height/IMAGE_H) /Anchors[1,1] )
+            YOLO_BOXES[Num_x,Num_y,1,0] = 1
+        else:
+            tw = tf.math.log( (width /IMAGE_W) /Anchors[0,0])
+            th = tf.math.log( (height/IMAGE_H) /Anchors[0,1] )
+            YOLO_BOXES[Num_x,Num_y,0,0] = 1
+         #objectness 
     
     
     
