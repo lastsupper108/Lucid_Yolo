@@ -7,7 +7,8 @@ Created on Thu May 21 02:53:37 2020
 """
 import hyper_parameters
 import tensorflow as tf
-Anchors = tf.constant([[0.4,0.2],[0.2,0.4]])
+ANCHORS = tf.constant([[0.4,0.2],[0.3,0.3],[0.2,0.4]])
+#aspect ratio of anchors [2,1,0.5] x/y which is w/h
 
 def load_img_tf(file_path):
     img = tf.io.read_file(file_path)
@@ -55,35 +56,43 @@ def pre_process(annotation,Anchors):
     centre_x = xmin + tf.math.divide(width,2)
     centre_y = xmax + tf.math.divide(height,2)
     
+    #find suitable anchor wrt w/h ration
+    
+    ratio_mat = tf.linalg.diag([2,1,0.5]) #anchor w/h ratios
+    mat = tf.ones([NUM_ANCHOR,no_of_objects],tf.float32)
+    mat = tf.math.abs(tf.matmul(ratio_mat,mat) - (height/width))
+    mat = tf.one_hot(tf.argmin(mat),NUM_ANCHOR)
+    anchor_loc = tf.matmul( [tf.range(NUM_ANCHOR)],tf.transpose(mat) )
+    anchor_loc = tf.cast(anchor_loc,tf.int32)
+    
+    
     Factor_x = tf.math.divide(IMAGE_W,GRID_DIM)
     Factor_y = tf.math.divide(IMAGE_H,GRID_DIM)
     Num_x = tf.cast(tf.math.divide(centre_x,Factor_x),tf.int32 )
     Num_y = tf.cast(tf.math.divide(centre_y,Factor_y),tf.int32 )
-    INDEX = Num_y*GRID_DIM+Num_x
-    unique = tf.unique(INDEX)
+    #num_x(img_w) is col no and num_y(img_h) is row no
     
-    for i in tf.range(no_of_objects):
-            #scale the bounding box as per input_scaling        
-            if(INDEX[i] in unique):
-                #all anchors point to same box
-        sigma_tx = (centre_x  %Factor_x)/Factor_x
-        sigma_ty = (centre_y  % Factor_y)/Factor_y
+    #No more required now INDEX = Num_y*GRID_DIM+self.Num_x
+    
+    #convert to yolov3 format cx cy
+    sigmoid_tx = (centre_x  % Factor_x)/Factor_x
+    sigmoid_ty = (centre_y  % Factor_y)/Factor_y
+
+    Y_HAT = tf.zeros(GRID_DIM,GRID_DIM,NUM_ANCHOR,5+NUM_CLASSES)
+
+#WE ONLY WANT ONE BOUNDING BOX PREDICTOR PER OBJECT
+#IOU cannot be part of LOSS Function since it is not diffrenciable      
+    for i in tf.range(no_of_objects):   #IN future I might remove this loop for something fancy  
+        tw = tf.math.log( (width[i] /IMAGE_W) /ANCHORS[anchor_loc[i],0])
+        th = tf.math.log( (height[i]/IMAGE_H) /ANCHORS[anchor_loc[i],1])
         
-        
-        #tensorflow images are loaded as (ht,width,ch)
-        if (width<height):#use anchor 1
-            tw = tf.math.log( (width /IMAGE_W) /Anchors[1,0])
-            th = tf.math.log( (height/IMAGE_H) /Anchors[1,1] )
-            YOLO_BOXES[Num_x,Num_y,1,0] = 1
-        else:
-            tw = tf.math.log( (width /IMAGE_W) /Anchors[0,0])
-            th = tf.math.log( (height/IMAGE_H) /Anchors[0,1] )
-            YOLO_BOXES[Num_x,Num_y,0,0] = 1
-         #objectness 
+        obj_box = tf.concat([tf.constant([1]),[sigmoid_tx[i],sigmoid_ty[i],\
+                             tw,th],categories[i]],0)
+                            #objectness,cx,cy,tw,th,cat
+        Y_HAT[Num_y[i],Num_x[i],anchor_loc[i],:] = obj_box 
+        #row,column,anchor,box
     
-    
-    
-    return img
+    return Y_HAT
 
 def create_dataset():
     

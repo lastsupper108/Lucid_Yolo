@@ -4,7 +4,7 @@ IMAGE_W = 416
 NUM_CHANNAL = 3
 GRID_DIM = 13
 
-NUM_ANCHOR = 2
+NUM_ANCHOR = 3
 NUM_CLASSES = 20 
 
 #images_folder     = './VOC2007/JPEGImages'
