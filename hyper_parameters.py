@@ -7,16 +7,19 @@ GRID_DIM = 13
 NUM_ANCHOR = 3
 NUM_CLASSES = 20 
 
+OBJECTNESS_THREHOLD=0.5
+
 #images_folder     = './VOC2007/JPEGImages'
 annotation_folder = './VOC2007/Annotations'
 path_to_filenames = './VOC2007/ImageSets/Main/'
 
 
-
-categories = ['boat', 'person', 'motorbike', 'car', 'diningtable', 'tvmonitor', 'bottle', 'train', 'chair', 'sofa', 'cow', 'cat', 'aeroplane', 'bus', 'bird', 'bicycle', 'horse', 'pottedplant', 'dog', 'sheep']
-categories2idx = {u:i for i, u in enumerate(categories)}
-
-
+def get_dictionaries():
+    with open('./categories.txt') as file:
+        lines = file.read().splitlines()
+        cat2idx = {cat:i for i,cat in enumerate(lines)}
+    idx2cat = {v: k for k, v in cat2idx.items()}
+    return idx2cat,cat2idx
 
 BATCH_SIZE = 2
 LEARNING_RATE = 5e-4

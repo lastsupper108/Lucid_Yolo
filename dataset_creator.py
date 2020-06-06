@@ -5,6 +5,7 @@ Created on Thu May 21 02:53:37 2020
 
 @author: maniac
 """
+import inference.py
 import hyper_parameters
 import tensorflow as tf
 ANCHORS = tf.constant([[0.4,0.2],[0.3,0.3],[0.2,0.4]])
@@ -88,11 +89,15 @@ def pre_process(annotation,Anchors):
         
         obj_box = tf.concat([tf.constant([1]),[sigmoid_tx[i],sigmoid_ty[i],\
                              tw,th],categories[i]],0)
+        obj_box = tf.reshape(obj_box,[-1])
                             #objectness,cx,cy,tw,th,cat
-        Y_HAT[Num_y[i],Num_x[i],anchor_loc[i],:] = obj_box 
+        
+        Y_HAT = tf.tensor_scatter_nd_update(Y_HAT, [[Num_y[i],Num_x[i],anchor_loc[i]]], [obj_box] )
         #row,column,anchor,box
-    
-    return Y_HAT
+        #check if extra square bracets are used in tensor_scatter
+    return img, Y_HAT
+
+
 
 def create_dataset():
     
@@ -101,7 +106,15 @@ def create_dataset():
     dataset = dataset.shuffle(hyper_parameters.SHUFFLE_BUFFER_SIZE)
     dataset = dataset.map(pre_process,num_parallel_calls = 4)#use 4 threads
     dataset = dataset.batch(2)
+
+    for item in dataset.take(1):
+        sample = item[0]
+        img,y = sample
+        boxes,cat = inference.decode_yolo_output(y) #list of boxes and cat names
+        inference.display_yolo_output(img,y) #display results
+
     return dataset.prefetch(1)
+
 
 
 import cv2
