@@ -5,6 +5,7 @@ Created on Sun Jun  7 01:27:40 2020
 
 @author: maniac
 """
+
 from hyper_parameters import OBJECTNESS_THREHOLD,GRID_DIM,NUM_ANCHOR,\
 IMAGE_H,IMAGE_W,NUM_CLASSES,get_dictionaries
 import tensorflow as tf
@@ -13,9 +14,11 @@ idx2cat,cat2idx =  get_dictionaries()
 
 
 
+
 #input is single prediction y
 #output is boxes,cat list
 def decode_yolo_output(y):
+
     #THIS FUNCTION works for SIG(TX),SIG(TY) values in y NOT TX,TY
     boxes=[]
     categories = []
@@ -30,7 +33,7 @@ def decode_yolo_output(y):
     Num_y = tf.cast(index/GRID_DIM,tf.int32)
     Num_x = index%GRID_DIM  
     
-    sig_tx= tf.gather( tf.reshape(y[...,1],[-1]) , boxes_loc)
+    sig_tx= tf.gather( tf.reshadded some syntax including seven "less than" characters, <<<<<<< and seven "greater thape(y[...,1],[-1]) , boxes_loc)
     sig_ty= tf.gather( tf.reshape(y[...,2],[-1]) , boxes_loc)
     tw= tf.gather( tf.reshape(y[...,3],[-1]) , boxes_loc)
     th= tf.gather( tf.reshape(y[...,4],[-1]) , boxes_loc)
@@ -65,8 +68,4 @@ def display_yolo_output(img,y):
     boxes,class_ID = decode_yolo_output(y)
     class_ID = class_ID.numpy()
     box_labels = [idx2cat[i] for i in class_ID.numpy()]
-    
-    #NOW GENERATE BOX IN FORMAT YOU CAN DISPLAY box and label
-    
-    
     pass

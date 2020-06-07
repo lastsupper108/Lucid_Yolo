@@ -95,6 +95,7 @@ def pre_process(annotation,Anchors):
         Y_HAT = tf.tensor_scatter_nd_update(Y_HAT, [[Num_y[i],Num_x[i],anchor_loc[i]]], [obj_box] )
         #row,column,anchor,box
         #check if extra square bracets are used in tensor_scatter
+
     return img, Y_HAT
 
 
