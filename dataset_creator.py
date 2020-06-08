@@ -5,9 +5,11 @@ Created on Thu May 21 02:53:37 2020
 
 @author: maniac
 """
-import inference.py
-import hyper_parameters
+
+from hyper_parameters import IMAGE_H,IMAGE_W,GRID_DIM,NUM_ANCHOR,NUM_CLASSES
 import tensorflow as tf
+import inference
+
 ANCHORS = tf.constant([[0.4,0.2],[0.3,0.3],[0.2,0.4]])
 #aspect ratio of anchors [2,1,0.5] x/y which is w/h
 
@@ -16,7 +18,7 @@ def load_img_tf(file_path):
     img = tf.image.decode_jpeg(img, channels=3)
     return img #image tensor
 
-def pre_process(annotation,Anchors):
+def pre_process(annotation):
     feature_dict = tf.io.parse_single_example(annotation,hyper_parameters.feature_description)
     
     ##IMAGE_PREPROCESSING
@@ -32,11 +34,11 @@ def pre_process(annotation,Anchors):
     no_of_objects = tf.shape(categories)[0]
     
     #write output y_hat as output of our neural net
-    boxes = tf.stack(
+    boxes = tf.stack([
     tf.sparse.to_dense(feature_dict['image/object/bbox/xmin']),
     tf.sparse.to_dense(feature_dict['image/object/bbox/xmax']),
     tf.sparse.to_dense(feature_dict['image/object/bbox/ymin']),
-    tf.sparse.to_dense(feature_dict['image/object/bbox/ymax'])
+    tf.sparse.to_dense(feature_dict['image/object/bbox/ymax'])]
     )
     
     #GRID x GRID x NUM_ANCHORS x (5+NUM_CATEG)
@@ -45,8 +47,9 @@ def pre_process(annotation,Anchors):
     #lets find grids corresponding to all boxes
     
     #scale box coordinates since image is scaled above as per preprocessing
-    x_scale = tf.math.divide(IMAGE_W,img_width)
-    y_scale =  tf.math.divide(IMAGE_H,img_height)
+    x_scale = tf.cast(tf.math.divide(IMAGE_W,img_width),tf.float32)
+    y_scale =  tf.cast(tf.math.divide(IMAGE_H,img_height),tf.float32)
+#    tf.print(tf.dtype())
     xmin = tf.cast(tf.math.round(tf.math.multiply( boxes[0,:] , x_scale)),dtype = tf.int32)
     ymin = tf.cast(tf.math.round(tf.math.multiply( boxes[2,:] , y_scale)),dtype =tf.int32)
     xmax = tf.cast(tf.math.round(tf.math.multiply( boxes[1,:] , x_scale)),tf.int32)
@@ -54,21 +57,21 @@ def pre_process(annotation,Anchors):
     #find important box info
     width = xmax- xmin
     height = ymax- ymin
-    centre_x = xmin + tf.math.divide(width,2)
-    centre_y = xmax + tf.math.divide(height,2)
+    centre_x = xmin + tf.cast(tf.math.divide(width,tf.constant(2)),tf.int32)
+    centre_y = xmax + tf.cast(tf.math.divide(height,tf.constant(2)),tf.int32)
     
     #find suitable anchor wrt w/h ration
     
     ratio_mat = tf.linalg.diag([2,1,0.5]) #anchor w/h ratios
     mat = tf.ones([NUM_ANCHOR,no_of_objects],tf.float32)
-    mat = tf.math.abs(tf.matmul(ratio_mat,mat) - (height/width))
+    mat = tf.math.abs(tf.matmul(ratio_mat,mat) - tf.cast((height/width),tf.float32))
     mat = tf.one_hot(tf.argmin(mat),NUM_ANCHOR)
-    anchor_loc = tf.matmul( [tf.range(NUM_ANCHOR)],tf.transpose(mat) )
+    anchor_loc = tf.matmul( [tf.range(NUM_ANCHOR)],tf.cast(tf.transpose(mat),tf.int32) )
     anchor_loc = tf.cast(anchor_loc,tf.int32)
     
     
-    Factor_x = tf.math.divide(IMAGE_W,GRID_DIM)
-    Factor_y = tf.math.divide(IMAGE_H,GRID_DIM)
+    Factor_x = tf.cast(tf.math.divide(IMAGE_W,GRID_DIM),tf.int32)
+    Factor_y = tf.cast(tf.math.divide(IMAGE_H,GRID_DIM),tf.int32)
     Num_x = tf.cast(tf.math.divide(centre_x,Factor_x),tf.int32 )
     Num_y = tf.cast(tf.math.divide(centre_y,Factor_y),tf.int32 )
     #num_x(img_w) is col no and num_y(img_h) is row no
@@ -79,11 +82,12 @@ def pre_process(annotation,Anchors):
     sigmoid_tx = (centre_x  % Factor_x)/Factor_x
     sigmoid_ty = (centre_y  % Factor_y)/Factor_y
 
-    Y_HAT = tf.zeros(GRID_DIM,GRID_DIM,NUM_ANCHOR,5+NUM_CLASSES)
+    Y_HAT = tf.zeros([GRID_DIM,GRID_DIM,NUM_ANCHOR,5+NUM_CLASSES])
 
 #WE ONLY WANT ONE BOUNDING BOX PREDICTOR PER OBJECT
 #IOU cannot be part of LOSS Function since it is not diffrenciable      
     for i in tf.range(no_of_objects):   #IN future I might remove this loop for something fancy  
+        
         tw = tf.math.log( (width[i] /IMAGE_W) /ANCHORS[anchor_loc[i],0])
         th = tf.math.log( (height[i]/IMAGE_H) /ANCHORS[anchor_loc[i],1])
         
@@ -118,7 +122,7 @@ def create_dataset():
 
 
 
-import cv2
+#import cv2
 #for item in dataset.take(1):
 #    parsed_example = tf.io.parse_single_example(item,hyper_parameters.feature_description)
 #    img = tf.io.decode_jpeg((parsed_example['image/encoded']))
@@ -140,7 +144,7 @@ import cv2
 #also draw the boxes 
     
 def main():
-    pass    
+    create_dataset()   
 
 if __name__== "__main__":
     main()

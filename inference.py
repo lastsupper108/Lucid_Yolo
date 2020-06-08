@@ -12,16 +12,14 @@ import tensorflow as tf
 ANCHORS = tf.constant([[0.4,0.2],[0.3,0.3],[0.2,0.4]])
 idx2cat,cat2idx =  get_dictionaries()
 
-
-
+import cv2
+import numpy as np
 
 #input is single prediction y
 #output is boxes,cat list
 def decode_yolo_output(y):
 
     #THIS FUNCTION works for SIG(TX),SIG(TY) values in y NOT TX,TY
-    boxes=[]
-    categories = []
 
     objectness= tf.reshape(tf.cast( y[...,0] >OBJECTNESS_THREHOLD ,tf.int32),[-1])
     boxes_loc = tf.where(objectness)
@@ -33,7 +31,7 @@ def decode_yolo_output(y):
     Num_y = tf.cast(index/GRID_DIM,tf.int32)
     Num_x = index%GRID_DIM  
     
-    sig_tx= tf.gather( tf.reshadded some syntax including seven "less than" characters, <<<<<<< and seven "greater thape(y[...,1],[-1]) , boxes_loc)
+    sig_tx= tf.gather( tf.reshahape(y[...,1],[-1]) , boxes_loc)
     sig_ty= tf.gather( tf.reshape(y[...,2],[-1]) , boxes_loc)
     tw= tf.gather( tf.reshape(y[...,3],[-1]) , boxes_loc)
     th= tf.gather( tf.reshape(y[...,4],[-1]) , boxes_loc)
@@ -59,6 +57,11 @@ def decode_yolo_output(y):
     class_ID = tf.argmax(one_hot_vectors, axis=1)
     
     
+    x_min= tf.maximum((centre_x - width/2),0)
+    x_max= tf.minimum((centre_x + width/2),IMAGE_W-1)
+    y_min= tf.maximum((centre_y - height/2),0)
+    y_max= tf.minimum((centre_y + height/2),IMAGE_H-1)
+    boxes = tf.stack([x_min,y_min,x_max,y_max])
     
     return boxes,class_ID
 
@@ -68,4 +71,15 @@ def display_yolo_output(img,y):
     boxes,class_ID = decode_yolo_output(y)
     class_ID = class_ID.numpy()
     box_labels = [idx2cat[i] for i in class_ID.numpy()]
-    pass
+
+    img =  img.numpy()*255
+    img = np.ndarray.astype(img,np.uint8)
+    
+    boxes = boxes.numpy()
+    
+    for i in range(0, len(boxes[0])):
+        # changed color and width to make it visible
+        cv2.rectangle(img, (boxes[0][i], boxes[1][i]), (boxes[2][i], boxes[3][i]), (255, 0, 0), 2)
+    cv2.imshow("img", img[...,::-1])#back convert to bgr from rgb to display
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
