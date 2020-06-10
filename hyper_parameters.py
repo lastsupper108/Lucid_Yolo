@@ -24,7 +24,7 @@ def get_dictionaries():
 BATCH_SIZE = 2
 LEARNING_RATE = 5e-4
 
-SHUFFLE_BUFFER_SIZE = 10
+SHUFFLE_BUFFER_SIZE = 100
 
 
 feature_description = {

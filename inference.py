@@ -24,14 +24,16 @@ def decode_yolo_output(y):
     objectness= tf.reshape(tf.cast( y[...,0] >OBJECTNESS_THREHOLD ,tf.int32),[-1])
     boxes_loc = tf.where(objectness)
     no_ofBoxes = tf.shape(boxes_loc)[0]
+
+    
     index = tf.cast(boxes_loc/NUM_ANCHOR,tf.int64)
     #index consist of index of box with object in itp
     
     anchor_index = boxes_loc%NUM_ANCHOR
     Num_y = tf.cast(index/GRID_DIM,tf.int32)
     Num_x = index%GRID_DIM  
-    
-    sig_tx= tf.gather( tf.reshahape(y[...,1],[-1]) , boxes_loc)
+    print(Num_x,Num_y)
+    sig_tx= tf.gather( tf.reshape(y[...,1],[-1]) , boxes_loc)
     sig_ty= tf.gather( tf.reshape(y[...,2],[-1]) , boxes_loc)
     tw= tf.gather( tf.reshape(y[...,3],[-1]) , boxes_loc)
     th= tf.gather( tf.reshape(y[...,4],[-1]) , boxes_loc)
