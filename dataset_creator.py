@@ -8,7 +8,7 @@ Created on Thu May 21 02:53:37 2020
 
 from hyper_parameters import IMAGE_H,IMAGE_W,GRID_DIM,NUM_ANCHOR,NUM_CLASSES,\
 SHUFFLE_BUFFER_SIZE,feature_description 
-from inference import decode_yolo_output,idx2cat
+from inference import decode_yolo_output,idx2cat,display_yolo_output
 import tensorflow as tf
 import numpy as np
 import cv2
@@ -102,7 +102,7 @@ def pre_process(annotation):
         tw = tf.math.log( tf.cast(w,tf.float32)/ANCHORS[anchor_loc[i],0])
         th = tf.math.log( tf.cast(h,tf.float32)/ANCHORS[anchor_loc[i],1] )
         y_= tf.stack(  [tf.constant(1.0),tf.cast(sigmoid_tx[i],tf.float32),tf.cast(sigmoid_ty[i],tf.float32),tw,th],0)  
-        obj_box = tf.concat([y_,categories[0]],0)
+        obj_box = tf.concat([y_,categories[i]],0)
 #                            #objectness,cx,cy,tw,th,cat
 #        
         Y_HAT = tf.tensor_scatter_nd_update(Y_HAT, [[Num_y[i],Num_x[i],anchor_loc[i]]], [obj_box] )
@@ -113,7 +113,7 @@ def pre_process(annotation):
 
 
 
-def create_dataset():
+def create_dataset(): 
     
     
     dataset = tf.data.TFRecordDataset(['./train_record1_of_2.tfrecords'])
@@ -126,6 +126,8 @@ def create_dataset():
     for item in dataset.take(1):
         img = item[0][0]
         y = item[1][0]
+        
+        
         img1 = img.numpy()*255
         img1 = np.ndarray.astype(img1,np.uint8)
         img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
@@ -133,11 +135,11 @@ def create_dataset():
         cv2.imshow('image',img1)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-        print(y.shape,img.shape)
-        boxes,ids  =decode_yolo_output(y) #list of boxes and cat names
-        
-        print("hii",boxes)
-#        inference.display_yolo_output(img,y) #display results
+#        print(y.shape,img.shape)
+         #list of boxes and cat names
+        boxes,ids = decode_yolo_output(y)
+#        print("hii",boxes)
+        display_yolo_output(img,y) #display results
 
     return dataset.prefetch(1)
 
