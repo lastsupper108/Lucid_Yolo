@@ -45,17 +45,19 @@ def decode_yolo_output(y):
     #in pixels
     centre_x= Factor_x*(tf.cast(Num_x,tf.float32) + sig_tx)  
     centre_y= Factor_y*(tf.cast(Num_y,tf.float32) + sig_ty)
+    centre_x = tf.squeeze(centre_x)
+    centre_y = tf.squeeze(centre_y)
     
     out = tf.squeeze(tf.gather(ANCHORS,anchor_index),1)
     
     
-    width = tf.matmul(tf.expand_dims( out[...,0],0),tf.math.exp(tw)) #ANCHOR first dim is width
-    height = tf.matmul(tf.expand_dims( out[...,1],0),tf.math.exp(th)) 
+    width =   out[...,0]*tf.squeeze( tf.math.exp(tw) ) #ANCHOR first dim is width
+    height = out[...,1] * tf.squeeze( tf.math.exp(th) ) 
 
-#    in pixels
-    width = width * Factor_x
-    height = height * Factor_y
-    
+    #in pixels
+    width = width * IMAGE_W
+    height = height * IMAGE_H
+
     #Convert back to categories
     one_hot_vectors =tf.squeeze( tf.gather( tf.reshape(y[...,5:],[-1,NUM_CLASSES]), boxes_loc))
     class_ID = tf.argmax(one_hot_vectors, axis=-1)
@@ -65,9 +67,9 @@ def decode_yolo_output(y):
     x_max= tf.minimum((centre_x + width/2),IMAGE_W-1)
     y_min= tf.maximum((centre_y - height/2),0)
     y_max= tf.minimum((centre_y + height/2),IMAGE_H-1)
-#    print(x_max)
+
     boxes = tf.stack([x_min,y_min,x_max,y_max])
-#    
+    
     return boxes,class_ID
 
 #input is (image,y)
@@ -75,16 +77,14 @@ def decode_yolo_output(y):
 def display_yolo_output(img,y): 
     boxes,class_ID = decode_yolo_output(y)
     class_ID = class_ID.numpy()
-#    if(type(class_ID)== list):
-#        box_labels = [idx2cat[i] for i in class_ID]
-#    else:
-#        box_labels = idx2cat[class_ID]
-    print(class_ID)
+    class_ID = np.squeeze(class_ID)
+    box_labels = [idx2cat[i] for i in class_ID]
+
+    print(box_labels)
     img =  img.numpy()*255
     img = np.ndarray.astype(img,np.uint8)
     
-#    boxes = np.cast(boxes.numpy(),np.int32)
-#    print(boxes.shape)
+
     for i in range(0, len(boxes[0])):
         # changed color and width to make it visible
         cv2.rectangle(img, (boxes[0][i], boxes[1][i]), (boxes[2][i], boxes[3][i]), (255, 0, 0), 2)

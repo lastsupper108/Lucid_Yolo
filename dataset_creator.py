@@ -58,16 +58,7 @@ def pre_process(annotation):
     centre_x = tf.cast(centre_x * x_scale,tf.int32)
     centre_y = tf.cast(centre_y * y_scale,tf.int32)
     
-    #GRID x GRID x NUM_ANCHORS x (5+NUM_CATEG)
-    
-#    img1 = img.numpy()*255
-#    img1 = np.ndarray.astype(img1,np.uint8)
-#    img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-##    print(parsed_example['image/filename'])
-#    cv2.imshow('image',img1)
-#    cv2.waitKey(0)
-#    cv2.destroyAllWindows()
-
+    #GRID x GRID x NUM_ANCHORS x (5+NUM_CATEG
 
     
     ratio_mat = tf.linalg.diag([2,1,0.5]) #anchor w/h ratios
@@ -98,7 +89,6 @@ def pre_process(annotation):
         w = (tf.gather(width,i) /IMAGE_W)
         h= (tf.gather(height,i) /IMAGE_H)
 
-       
         tw = tf.math.log( tf.cast(w,tf.float32)/ANCHORS[anchor_loc[i],0])
         th = tf.math.log( tf.cast(h,tf.float32)/ANCHORS[anchor_loc[i],1] )
         y_= tf.stack(  [tf.constant(1.0),tf.cast(sigmoid_tx[i],tf.float32),tf.cast(sigmoid_ty[i],tf.float32),tw,th],0)  
@@ -118,8 +108,6 @@ def create_dataset():
     
     dataset = tf.data.TFRecordDataset(['./train_record1_of_2.tfrecords'])
     dataset = dataset.shuffle(SHUFFLE_BUFFER_SIZE)
-#    for item in dataset.take(1):
-#        pre_process(item)
     dataset = dataset.map(pre_process,num_parallel_calls = 4)#use 4 threads
     dataset = dataset.batch(2)
 
@@ -131,14 +119,13 @@ def create_dataset():
         img1 = img.numpy()*255
         img1 = np.ndarray.astype(img1,np.uint8)
         img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-    #    print(parsed_example['image/filename'])
+
         cv2.imshow('image',img1)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-#        print(y.shape,img.shape)
-         #list of boxes and cat names
+
         boxes,ids = decode_yolo_output(y)
-#        print("hii",boxes)
+
         display_yolo_output(img,y) #display results
 
     return dataset.prefetch(1)
