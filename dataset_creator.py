@@ -9,7 +9,7 @@ Created on Thu May 21 02:53:37 2020
 from hyper_parameters import IMAGE_H,IMAGE_W,GRID_DIM,NUM_ANCHOR,NUM_CLASSES,\
 SHUFFLE_BUFFER_SIZE,feature_description 
 from inference import decode_yolo_output,idx2cat,display_yolo_output
-from loss import calc_loss
+#from loss import calc_loss
 import tensorflow as tf
 import numpy as np
 import cv2
@@ -117,16 +117,16 @@ def create_dataset():
         y = item[1][0]
         
         
-#        img1 = img.numpy()*255
-#        img1 = np.ndarray.astype(img1,np.uint8)
-#        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-#
-#        cv2.imshow('image',img1)
-#        cv2.waitKey(0)
-#        cv2.destroyAllWindows()
-        loss = calc_loss(item[1],item[1])
-#        boxes,ids = decode_yolo_output(y)
-#        display_yolo_output(img,y) #display results
+        img1 = img.numpy()*255
+        img1 = np.ndarray.astype(img1,np.uint8)
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
+
+        cv2.imshow('image',img1)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+#        loss = calc_loss(item[1],item[1])
+        boxes,ids = decode_yolo_output(y)
+        display_yolo_output(img,y) #display results
         
     return dataset.prefetch(1)
 
